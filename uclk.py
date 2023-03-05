@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import multivariate_normal
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import RidgeCV
+from utils import fit_mixture_model
 
 class UclkAgent(BaseEstimator):
 
@@ -88,14 +89,12 @@ class UclkAgent(BaseEstimator):
             # Solve theta
             Y = np.concatenate((Phi1, np.ones((N,1))),axis=-1) @ V # (N,)
             X = Psi0 @ V # (N,d)
-            for a in range(na):
+            for a in range(na):                
                 Ya = Y[A0==a] # (*,)
                 Xa = X[A0==a,:] # (*,d)
-                Theta[:,a] = RidgeCV(fit_intercept=False).fit(Xa, Ya).coef_ # (d,)
-                if np.sum(Theta[:,a]) < eps:
-                    Theta[:,a] = np.ones(d)/d
-                else:
-                    Theta[:,a] /= np.sum(Theta[:,a])
+                theta, res = fit_mixture_model(Xa, Ya)
+                assert res.success, res.message
+                Theta[:,a] = theta[:]
 
         self.Theta[:,:] = Theta[:,:] # (d,na)
         self.V[:] = V[:] # (d+1,)
